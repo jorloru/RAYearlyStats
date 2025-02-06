@@ -8,7 +8,7 @@ This is a project I started just for the fun of learning how to make API calls t
 
 The application is set up to work using Binder, an online free service to run Jupyter notebooks like this program. You just need to hit the button below to be redirected to the Binder page which, after loading for a bit, will load the tool ready for use.
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jorloru/RAYearlyStats/main?urlpath=%2Fdoc%2Ftree%2Fsrc%2FRAYearlyStats.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jorloru/RAYearlyStats/main?urlpath=%2Ftree%2Fsrc%2FRAYearlyStats.ipynb)
 
 Once loaded, please read carefully both Instructions and Considerations sections to know how to use the tool and what to expect.
 
@@ -26,7 +26,7 @@ Here's a sample of what you can expect from RA Yearly Stats, using my own result
 
 ### What if I can't use Binder?
 
-In case Binder isn't an option due to a huge amount of achievement data or because the service is down, here I'll leave the steps you need to follow in order to run the tool in your computer:
+In case Binder isn't an option due to a huge amount of achievement data or because the service is down, I leave below the steps you need to follow in order to run the tool locally in your computer:
 
 1) You will need to have both Python and Jupyter installed in your computer. If you require help with the installation of these programs, head below to the 'Installing and using Python and Jupyter' section.
 
