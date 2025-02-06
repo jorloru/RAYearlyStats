@@ -6,15 +6,11 @@ This is a project I started just for the fun of learning how to make API calls t
 
 ### How to use
 
-1) You will need to have both Python and Jupyter installed in your computer. If you require help with the installation of these programs, head below to the 'Installing Python and Jupyter' section.
+The application is set up to work using Binder, an online free service to run Jupyter notebooks like this program. You just need to hit the button below to be redirected to the Binder page which, after loading for a bit, will load the tool ready for use.
 
-2) Download the contents of the `src` folder. Place this files wherever you like but keep all of them in the same folder.
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jorloru/RAYearlyStats/main?urlpath=%2Fdoc%2Ftree%2Fsrc%2FRAYearlyStats.ipynb)
 
-3) Open a terminal and type `jupyter notebook` to open a Jupyter terminal in your browser.
-
-4) Open the downloaded Jupyter Notebook `RAYearlyStats.ipynb` from the Jupyter terminal.
-
-5) Follow the instructions that you will find within the Notebook under the tab Instructions. Please read the information listed under the Considerations tab as well.
+Once loaded, please read carefully both Instructions and Considerations sections to know how to use the tool and what to expect.
 
 ### Showcase example
 
@@ -28,6 +24,20 @@ Here's a sample of what you can expect from RA Yearly Stats, using my own result
 
 ![Fourth page](https://github.com/jorloru/RAYearlyStats/blob/main/images/example4.png)
 
+### What if I can't use Binder?
+
+In case Binder isn't an option due to a huge amount of achievement data or because the service is down, here I'll leave the steps you need to follow in order to run the tool in your computer:
+
+1) You will need to have both Python and Jupyter installed in your computer. If you require help with the installation of these programs, head below to the 'Installing and using Python and Jupyter' section.
+
+2) Download the contents of the `src` folder. Place this files wherever you like but keep all of them in the same folder. You will also need to download the `requirements.txt` file.
+
+3) Open a terminal and type `jupyter notebook` to open a Jupyter terminal in your browser.
+
+4) Open the downloaded Jupyter Notebook `RAYearlyStats.ipynb` from the Jupyter terminal.
+
+5) Follow the instructions that you will find within the Notebook under the tab Instructions. Please read the information listed under the Considerations tab as well.
+
 ### Installing and using Python and Jupyter
 
 Here's a step by step installation of the necessary tools to run the code.
@@ -38,7 +48,7 @@ Please note that these steps are not unique as there is more than one way of ins
 
 2) Run the installer.
 
-3) If you are installing on Windows, make sure to enable the checkbox labeled 'Add Python.exe to PATH' that will appear on the very first screen.3
+3) If you are installing on Windows, make sure to enable the checkbox labeled 'Add Python.exe to PATH' that will appear on the very first screen.
 
 4) Follow the instructions on screen until the installation process is finished.
 
@@ -48,6 +58,12 @@ Please note that these steps are not unique as there is more than one way of ins
 
 7) Type `pip install notebook`. This will install Jupyter Notebook.
 
-8) Type `jupyter notebook` to run Jupyter Notebook. This should open a new browser tab. Keep your terminal open until you are finished using Jupyter Notebook.
+8) Navigate to the folder where you have the `requirements.txt` file. You can navigate to a folder by typing `cd path`, where `path` refers to your folder path.
 
-9) From here, you should be able to navigate to the folder with the downloaded code as prompted in the 'How to use' section above.
+9) Type `pip install requirements.txt`. This will install all other necessary libraries.
+
+10) Close the current terminal and open a new one. Type `jupyter notebook` to run Jupyter Notebook. This should open a new browser tab. Keep your terminal open until you are finished using Jupyter.
+
+11) In Jupyter (the newly opened browser tab), navigate to the downloaded `src` folder.
+
+12) Follow steps 4 and 5 from the previous section.
