@@ -1,5 +1,5 @@
 pandas
 matplotlib
 mplcursors
-plotly
+plotly < 6.0.0
 ipywidgets
