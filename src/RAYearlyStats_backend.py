@@ -381,7 +381,7 @@ def get_user_icon_fig(username: str):
 
 # Complex functions
 
-def retrieve_historic_df(username: str, api_key: str) -> pd.DataFrame:
+def retrieve_historic_df(username: str, api_key: str, hardcore_mode_only: bool) -> pd.DataFrame:
     
     """
     Make some requests to the RetroAchievements API and return a DataFrame
@@ -390,15 +390,18 @@ def retrieve_historic_df(username: str, api_key: str) -> pd.DataFrame:
     Parameters:
         
         username (str):
-            The user's RetroAchievements username
+            The user's RetroAchievements username.
             
         api_key (str):
-            The user's RetroAchievements API key
+            The user's RetroAchievements API key.
+            
+        hardcore_mode_only (bool):
+            True if you want to exclude Softcore achievement data.
         
     Returns:
         
         df_historic (pandas.DataFrame):
-            The user's achievement history
+            The user's achievement history.
     """
     
     # Set base URL
@@ -457,8 +460,10 @@ def retrieve_historic_df(username: str, api_key: str) -> pd.DataFrame:
     
     # Softcore achievements gained later on hardcore are not counted.
     # To avoid misrepresenting data, we entirely drop softcore achievements
+    # if the user decides so.
 
-    df_historic = df_historic[df_historic["HardcoreMode"] == 1].reset_index(drop=True)
+    if hardcore_mode_only:
+        df_historic = df_historic[df_historic["HardcoreMode"]].reset_index(drop=True)
     
     # Format the dates in a more manageable way
     
@@ -475,8 +480,11 @@ def retrieve_historic_df(username: str, api_key: str) -> pd.DataFrame:
     
     # Drop unused achievements data to save memory
     
-    df_historic = df_historic.drop(["HardcoreMode",
-                                    "GameURL"], axis=1)
+    if hardcore_mode_only:
+        df_historic = df_historic.drop(["HardcoreMode",
+                                        "GameURL"], axis=1)
+    else:
+        df_historic = df_historic.drop("GameURL", axis=1)
 
     return df_historic
 
@@ -615,7 +623,8 @@ def get_event_data(df_historic, drop=False):
 def get_yearly_stats(df_historic: pd.DataFrame,
                      year: int,
                      df_games_data: pd.DataFrame,
-                     cheevos_data_dict: dict):
+                     cheevos_data_dict: dict,
+                     hardcore_mode_only: bool= False):
     
     """
     Extract the RetroAchievements stats for a certain year from some user's
@@ -635,6 +644,11 @@ def get_yearly_stats(df_historic: pd.DataFrame,
         cheevos_data_dict (dict):
             Dictionary with the involved games' ID as keys and a Pandas
             DataFrame containing the achievements' metadata as values.
+            
+        hardcore_mode_only (bool):
+            Set to True to not take Softcore data into account. If False, it
+            requires df_historic to have the HardcoreMode column. False by
+            default.
         
     Returns:
         
@@ -650,16 +664,20 @@ def get_yearly_stats(df_historic: pd.DataFrame,
 
     # Get basic data
 
-    stats["Game total"]         = len(game_ids)
-    stats["Achievements total"] = len(df_year)
-    stats["Points total"]       = df_year["Points"].sum()
-    stats["RetroPoints total"]  = df_year["TrueRatio"].sum()
-
-    # Get most fruitful games
-
-    stats["Max cheevos"]      = get_most_cheevo_game(df_year)
-    stats["Max pointer"]      = get_most_point_game(df_year)
-    stats["Max RetroPointer"] = get_most_retropoint_game(df_year)
+    stats["Game total"]            = len(game_ids)
+    stats["Achievements total"]    = len(df_year)
+    
+    if hardcore_mode_only:
+        
+        stats["Softcore Points total"] = 0
+        stats["Hardcore Points total"] = df_year["Points"].sum()
+        stats["RetroPoints total"]     = df_year["TrueRatio"].sum()
+        
+    else:
+        
+        stats["Softcore Points total"] = df_year[df_year["HardcoreMode"] == False]["Points"].sum()
+        stats["Points total"]          = df_year[df_year["HardcoreMode"] == True ]["Points"].sum()
+        stats["RetroPoints total"]     = df_year[df_year["HardcoreMode"] == True ]["TrueRatio"].sum()
 
     # Get mastery/beaten data
     
