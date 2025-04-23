@@ -25,6 +25,12 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 # Basic functions
+    
+def http_get(url):
+    
+    # TODO Handle some edge cases
+    
+    return requests.get(url)
 
 def get_game_ids(df_historic: pd.DataFrame) -> np.array:
     
@@ -160,15 +166,22 @@ def check_beaten(game_id: int, df_game: pd.DataFrame, cheevos_data_dict: dict) -
 
     df_cheevos = get_cheevo_data(game_id, cheevos_data_dict)
 
-    # If one progression achievement is missing, return False
+    # If one Progression achievement is missing, return False
     
     for cheevo_id in df_cheevos[df_cheevos["type"] == "progression"]["ID"]:
         if cheevo_id not in df_game["AchievementID"].values:
             return False
+    
+    win_condition_cheevos = df_cheevos[df_cheevos["type"] == "win_condition"]
+    
+    # If all Progression achievements are there but there is no Win Condition, return True
+    
+    if len(win_condition_cheevos) == 0:
+        return True
+    
+    # If one Win Condition achievement is present, return True
 
-    # If one win condition achievement is present, return True
-
-    for cheevo_id in df_cheevos[df_cheevos["type"] == "win_condition"]["ID"]:
+    for cheevo_id in win_condition_cheevos["ID"]:
         if cheevo_id in df_game["AchievementID"].values:
             return True
 
@@ -252,7 +265,7 @@ def retrieve_image(url: str) -> Image:
             The requested image.
     """
 
-    response = requests.get(url)
+    response = http_get(url)
     
     if response.status_code == 200:
         return Image.open(BytesIO(response.content))
@@ -421,7 +434,7 @@ def retrieve_historic_df(username: str, api_key: str, hardcore_mode_only: bool) 
     # Request the first batch of achievements (500/request max)
 
     url = func_url + "&".join(args)
-    response = requests.get(url).json()
+    response = http_get(url).json()
     
     # Store first batch of achievements in the historic
 
@@ -444,7 +457,7 @@ def retrieve_historic_df(username: str, api_key: str, hardcore_mode_only: bool) 
         # Request the next batch achievements
 
         url = func_url + "&".join(args)
-        response = requests.get(url).json()
+        response = http_get(url).json()
         
         # Store in the historic
         
@@ -542,7 +555,7 @@ def retrieve_necessary_games_data(df_historic: pd.DataFrame, api_key: str) -> pd
         
         # Request the next game's data
         
-        game_data = requests.get(url).json()
+        game_data = http_get(url).json()
         
         # Separate achievements data
         
