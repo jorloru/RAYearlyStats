@@ -694,9 +694,6 @@ def get_yearly_stats(df_historic: pd.DataFrame,
 
     # Get mastery/beaten data
     
-    df_until = df_historic[df_historic["Year"] <= year]
-    df_prev  = df_historic[df_historic["Year"] <  year]
-    
     mastered_games = []
     beaten_games   = []
     
@@ -706,8 +703,8 @@ def get_yearly_stats(df_historic: pd.DataFrame,
     
     for game_id in game_ids:
     
-        df_game_until = df_until[df_until["GameID"] == game_id]
-        df_game_prev  = df_prev[ df_prev[ "GameID"] == game_id]
+        df_game_until = df_historic[(df_historic["Year"] <= year) & (df_historic["GameID"] == game_id)]
+        df_game_prev  = df_historic[(df_historic["Year"] <  year) & (df_historic["GameID"] == game_id)]
     
         if (check_mastered(game_id, df_game_until, cheevos_data_dict) and not check_mastered(game_id, df_game_prev, cheevos_data_dict)):
     
