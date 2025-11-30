@@ -6,8 +6,6 @@ This is a project I started just for the fun of learning how to make API calls t
 
 ### Showcase example
 
-Here's a sample of what you can expect from RA Yearly Stats, using my own results from 2024:
-
 ![First page](https://github.com/jorloru/RAYearlyStats/blob/main/images/example1.png)
 
 ![Second page](https://github.com/jorloru/RAYearlyStats/blob/main/images/example2.png)
