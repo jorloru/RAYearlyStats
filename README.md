@@ -4,17 +4,7 @@ Welcome to RA Yearly Stats! This Jupyter notebook is a window to your yearly Ret
 
 This is a project I started just for the fun of learning how to make API calls that ended up in what you see now. At some point I was happy enough with the shape it was taking to decide that it might be of interest to people other than me. Ever since I discovered RetroAchievements, I wanted to repay the community in some way for all of the free fun that it has given me, so take this as my little thank you to you all.
 
-### How to use
-
-The application is set up to work using Binder, an online free service to run Jupyter notebooks like this program. You just need to hit the button below to be redirected to the Binder page which, after loading for a bit, will load the tool ready for use.
-
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jorloru/RAYearlyStats/main?urlpath=%2Ftree%2Fsrc%2FRAYearlyStats.ipynb)
-
-Once loaded, please read carefully both Instructions and Considerations sections to know how to use the tool and what to expect.
-
 ### Showcase example
-
-Here's a sample of what you can expect from RA Yearly Stats, using my own results from 2024:
 
 ![First page](https://github.com/jorloru/RAYearlyStats/blob/main/images/example1.png)
 
@@ -23,6 +13,14 @@ Here's a sample of what you can expect from RA Yearly Stats, using my own result
 ![Third page](https://github.com/jorloru/RAYearlyStats/blob/main/images/example3.png)
 
 ![Fourth page](https://github.com/jorloru/RAYearlyStats/blob/main/images/example4.png)
+
+### How to use
+
+The application is set up to work using Binder, an online free service to run Jupyter notebooks like this program. You just need to hit the button below to be redirected to the Binder page which, after loading for a bit, will load the tool ready for use.
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jorloru/RAYearlyStats/main?urlpath=%2Ftree%2Fsrc%2FRAYearlyStats.ipynb)
+
+Once loaded, please read carefully both Instructions and Considerations sections to know how to use the tool and what to expect.
 
 ### What if I can't use Binder?
 

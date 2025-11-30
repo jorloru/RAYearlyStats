@@ -391,6 +391,51 @@ def get_user_icon_fig(username: str):
     
     return retrieve_image_as_fig(url)
 
+def get_formatted_date(day: int, month: int, year: int = None) -> str:
+
+    """
+    Returns a string representing the requested date.
+    
+    Parameters:
+        
+        day (int):
+            Day cardinal from 1 to 31.
+        month (int):
+            Month cardinal from 1 to 12.
+        year (int, optional):
+            Year, omitted if not specified.
+            
+    Returns:
+        
+        str:
+            A date formatted like '{month} {day}th, {year}'.
+    """
+
+    # Format the day
+
+    if day in (11, 12, 13):
+        day_str =  f"{day}th"
+    else:
+        last_digit = day % 10
+        if last_digit == 1:
+            day_str =  f"{day}st"
+        elif last_digit == 2:
+            day_str =  f"{day}nd"
+        elif last_digit == 3:
+            day_str =  f"{day}rd"
+        else:
+            day_str =  f"{day}th"
+
+    # Format the month
+
+    month_name = calendar.month_name[month]
+
+    # Return
+
+    if year == None:
+        return f"{month_name} {day_str}"
+    else:
+        return f"{month_name} {day_str}, {year}"
 
 # Complex functions
 
@@ -692,42 +737,69 @@ def get_yearly_stats(df_historic: pd.DataFrame,
         stats["Points total"]          = df_year[df_year["HardcoreMode"] == True ]["Points"].sum()
         stats["RetroPoints total"]     = df_year[df_year["HardcoreMode"] == True ]["TrueRatio"].sum()
 
-    # Get mastery/beaten data
-    
-    df_until = df_historic[df_historic["Year"] <= year]
-    df_prev  = df_historic[df_historic["Year"] <  year]
+    ### Get mastery/beaten data
     
     mastered_games = []
     beaten_games   = []
+
+    mastered_dates = [] # Formatted dates
+    beaten_dates   = []
+
+    mastered_dates_raw = [] # Unix dates for easier sorting
+    beaten_dates_raw   = []
     
     game_icons = {}
-    
-    get_icon_flag = False
+
+    # Check which games were mastered and/or beaten
     
     for game_id in game_ids:
     
-        df_game_until = df_until[df_until["GameID"] == game_id]
-        df_game_prev  = df_prev[ df_prev[ "GameID"] == game_id]
+        df_game_until = df_historic[(df_historic["Year"] <= year) & (df_historic["GameID"] == game_id)]
+        df_game_prev  = df_historic[(df_historic["Year"] <  year) & (df_historic["GameID"] == game_id)]
     
-        if (check_mastered(game_id, df_game_until, cheevos_data_dict) and not check_mastered(game_id, df_game_prev, cheevos_data_dict)):
+        if ((check_mastered(game_id, df_game_until, cheevos_data_dict) and not
+             check_mastered(game_id, df_game_prev,  cheevos_data_dict))):
+            
+            last_entry = df_game_until.iloc[len(df_game_until)-1]
     
             mastered_games.append(game_id)
-            get_icon_flag = True
+            mastered_dates.append(get_formatted_date(last_entry['Day'], last_entry['Month']))
+            mastered_dates_raw.append(last_entry['Date'])
     
-        if (check_beaten(game_id, df_game_until, cheevos_data_dict) and not check_beaten(game_id, df_game_prev, cheevos_data_dict)):
+        if ((check_beaten(game_id, df_game_until, cheevos_data_dict) and not
+             check_beaten(game_id, df_game_prev,  cheevos_data_dict))):
+
+            last_entry = df_game_until.iloc[len(df_game_until)-1]
     
             beaten_games.append(game_id)
-            get_icon_flag = True
-                
-        if get_icon_flag:
-            game_icons[game_id] = get_game_icon_fig(df_historic, game_id)
-            get_icon_flag = False
+            beaten_dates.append(get_formatted_date(last_entry['Day'], last_entry['Month']))
+            beaten_dates_raw.append(last_entry['Date'])
+    
+    # Sort by date
+
+    mastered_order = np.argsort(mastered_dates_raw)
+    beaten_order   = np.argsort(beaten_dates_raw)
+
+    mastered_games = [mastered_games[i] for i in mastered_order]
+    mastered_dates = [mastered_dates[i] for i in mastered_order]
+
+    beaten_games = [beaten_games[i] for i in beaten_order]
+    beaten_dates = [beaten_dates[i] for i in beaten_order]
+
+    # Retrieve game icons for chosen games
+
+    for game_id in np.unique(mastered_games + beaten_games):
+        game_icons[game_id] = get_game_icon_fig(df_historic, game_id)
+
+    # Store relevant data in output dictionary
 
     stats["Mastered games"] = mastered_games
     stats["Beaten games"]   = beaten_games
+    stats["Mastered dates"] = mastered_dates
+    stats["Beaten dates"]   = beaten_dates
     stats["Game icons"]     = game_icons
     
-    # Get hardest achievements
+    ### Get hardest achievements
     
     hardest_achievements = df_year.nlargest(10, "TrueRatio").reset_index(drop=True)
     
@@ -1188,7 +1260,8 @@ if __name__ == "__main__":
     api_key = input("Your API key: ")
     
     df_historic = retrieve_historic_df(username=username,
-                                       api_key=api_key)
+                                       api_key=api_key,
+                                       hardcore_mode_only=False)
     
     df_games_data, cheevos_data_dict = retrieve_necessary_games_data(df_historic=df_historic,
                                                                      api_key=api_key)
@@ -1207,22 +1280,17 @@ if __name__ == "__main__":
     
     print("You played", stats["Game total"], "games.\n")
     print("You got", stats["Achievements total"], "achievements.")
-    print("The game you got the most achievements for is " + get_game_title(stats["Max cheevos"][0], df_games_data) + ", with " + str(stats["Max cheevos"][1]) + " achievements.\n")
-
     print("You got", stats["Points total"], "points.")
-    print("The game that gave you the most points is " + get_game_title(stats["Max pointer"][0], df_games_data) + ", with " + str(stats["Max pointer"][1]) + " points.\n")
-    
     print("You got", stats["RetroPoints total"], "RetroPoints.")
-    print("The game that gave you the most RetroPoints is " + get_game_title(stats["Max RetroPointer"][0], df_games_data) + ", with " + str(stats["Max RetroPointer"][1]) + " points.\n")
         
     print("You beat", len(stats["Beaten games"]), "games:")
-    for game_id in stats["Beaten games"]:
-        print("\t" + get_game_title(game_id, df_games_data) + ", " + get_game_console(game_id, df_historic))
+    for game_id, date in zip(stats["Beaten games"], stats["Beaten dates"]):
+        print("\t" + get_game_title(game_id, df_games_data) + ", " + get_game_console(game_id, df_historic) + ", " + date)
     print()
     
     print("You mastered", len(stats["Mastered games"]), "games:")
-    for game_id in stats["Mastered games"]:
-        print("\t" + get_game_title(game_id, df_games_data) + ", " + get_game_console(game_id, df_historic))
+    for game_id, date in zip(stats["Mastered games"], stats["Mastered dates"]):
+        print("\t" + get_game_title(game_id, df_games_data) + ", " + get_game_console(game_id, df_historic) + ", " + date)
         
     # Daily points figure
         
