@@ -1257,7 +1257,8 @@ def get_figure_dev_distribution(df_historic: pd.DataFrame, year: str, by: str, m
 if __name__ == "__main__":
     
     username = input("Username: ")
-    api_key = input("Your API key: ")
+    api_key  = input("Your API key: ")
+    year = int(input("Year: "))
     
     df_historic = retrieve_historic_df(username=username,
                                        api_key=api_key,
@@ -1265,8 +1266,6 @@ if __name__ == "__main__":
     
     df_games_data, cheevos_data_dict = retrieve_necessary_games_data(df_historic=df_historic,
                                                                      api_key=api_key)
-    
-    year = 2023
     
     # Yearly stats
     
