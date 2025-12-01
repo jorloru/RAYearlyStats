@@ -41,7 +41,7 @@ def http_get(
 
 def get_game_ids(
     df_historic: pd.DataFrame,
-) -> np.array:
+) -> np.ndarray:
     
     """
     Returns all the game IDs contained in a DataFrame containing the user's metadata.
@@ -292,7 +292,7 @@ def get_most_cheevo_game(
 
 def retrieve_image(
     url: str,
-) -> Image:
+) -> Image.Image | None:
     
     """
     Get an image from the web.
@@ -314,7 +314,7 @@ def retrieve_image(
         return Image.open(BytesIO(response.content))
     else:
         print(f"Failed to download image. Status code: {response.status_code}")
-        return None
+        return
 
 
 def retrieve_image_as_fig(
@@ -336,6 +336,9 @@ def retrieve_image_as_fig(
     """
 
     img = retrieve_image(url)
+
+    if img == None:
+        return
     
     fig, ax = plt.subplots(figsize=(1, 1))
     ax.axis('off')
@@ -456,7 +459,7 @@ def get_user_icon_fig(
 def get_formatted_date(
     day: int,
     month: int,
-    year: int= None,
+    year: int= 0,
 ) -> str:
 
     """
@@ -498,7 +501,7 @@ def get_formatted_date(
 
     # Return
 
-    if year == None:
+    if year == 0:
         return f"{month_name} {day_str}"
     else:
         return f"{month_name} {day_str}, {year}"
@@ -545,10 +548,12 @@ def retrieve_historic_df(
     start_date_epoch = calendar.timegm(datetime.datetime(1970, 1, 1, 0, 0, 0).timetuple())
     end_date_epoch   = calendar.timegm(datetime.datetime(2100, 1, 1, 0, 0, 0).timetuple())
 
-    args = ["y=" + api_key,
-            "u=" + username,
-            "f=" + str(start_date_epoch),
-            "t=" + str(end_date_epoch)]
+    args = [
+        "y=" + api_key,
+        "u=" + username,
+        "f=" + str(start_date_epoch),
+        "t=" + str(end_date_epoch),
+    ]
     
     # Request the first batch of achievements (500/request max)
 
@@ -613,18 +618,90 @@ def retrieve_historic_df(
     # Drop unused achievements data to save memory
     
     if hardcore_mode_only:
-        df_historic = df_historic.drop(["HardcoreMode",
-                                        "GameURL"], axis=1)
+        df_historic = df_historic.drop(
+            [
+                "HardcoreMode",
+                "GameURL",
+            ],
+            axis=1)
     else:
         df_historic = df_historic.drop("GameURL", axis=1)
 
     return df_historic
 
 
+def retrieve_awards_df(
+    username: str,
+    api_key: str,
+) -> pd.DataFrame:
+    
+    """
+    Make some requests to the RetroAchievements API and return a DataFrame
+    containing the user's award history.
+    
+    Parameters:
+        
+        username (str):
+            The user's RetroAchievements username.
+            
+        api_key (str):
+            The user's RetroAchievements API key.
+        
+    Returns:
+        
+        df_historic (pandas.DataFrame):
+            The user's achievement history.
+    """
+    
+    # Set base URL
+    
+    func_url = "https://retroachievements.org/API/API_GetUserAwards.php?"
+
+    # Prepare arguments for the request
+
+    args = [
+        "y=" + api_key,
+        "u=" + username,
+    ]
+    
+    # Make the request
+
+    url = func_url + "&".join(args)
+    response = http_get(url).json()
+
+    df_awards = pd.DataFrame(response['VisibleUserAwards'])
+
+    # Format the dates in a more manageable way
+    
+    splitdate = df_awards["AwardedAt"].apply(lambda x: np.array(x.replace("T", " ").replace("-", " ").replace(":", " ")[:-6].split()))
+    splitdate = splitdate.apply(lambda x: [int(item) for item in x])
+
+    df_awards["Year"]   = splitdate.apply(lambda x: x[0])
+    df_awards["Month"]  = splitdate.apply(lambda x: x[1])
+    df_awards["Day"]    = splitdate.apply(lambda x: x[2])
+    df_awards["Hour"]   = splitdate.apply(lambda x: x[3])
+    df_awards["Minute"] = splitdate.apply(lambda x: x[4])
+
+    df_awards["Date"] = splitdate.apply(lambda x: calendar.timegm(datetime.datetime(*x).timetuple()))
+
+    # Drop unused achievements data to save memory
+
+    df_awards.drop(
+        [
+            "AwardedAt",
+            "DisplayOrder",
+            "Flags",
+        ],
+        axis=1,
+        inplace=True)
+
+    return df_awards
+
+
 def retrieve_necessary_games_data(
     df_historic: pd.DataFrame,
     api_key: str,
-) -> pd.DataFrame:
+) -> tuple:
     
     """
     Make some requests to the RetroAchievements API and return the metadata
@@ -763,9 +840,9 @@ def get_event_data(
 
 def get_yearly_stats(
     df_historic: pd.DataFrame,
+    df_awards: pd.DataFrame,
     year: int,
-    cheevos_data_dict: dict,
-    hardcore_mode_only: bool= False
+    hardcore_mode_only: bool= False,
 ) -> dict:
     
     """
@@ -776,6 +853,9 @@ def get_yearly_stats(
         
         df_historic (pandas.DataFrame):
             Some user's RetroAchievements achievement history.
+        
+        df_awards (pandas.DataFrame):
+            Some user's RetroAchievements award history.
             
         year (int):
             Year to check.
@@ -795,97 +875,61 @@ def get_yearly_stats(
             Dictionary with the user's stats for the selected year.
     """
 
-    df_year  = df_historic[df_historic["Year"] == year].reset_index(drop=True)
+    df_cheevo_year = df_historic[df_historic["Year"] == year].reset_index(drop=True)
+    df_awards_year = df_awards[  df_awards["Year"]   == year].reset_index(drop=True)
 
-    game_ids = get_game_ids(df_year)
+    df_awards_year = df_awards_year[(df_awards_year["AwardType"] == "Game Beaten") |
+                                    (df_awards_year["AwardType"] =="Mastery/Completion")]
+
+    game_ids = get_game_ids(df_cheevo_year)
 
     stats = {}
 
     # Get basic data
 
-    stats["Game total"]            = len(game_ids)
-    stats["Achievements total"]    = len(df_year)
+    stats["Game total"]         = len(game_ids)
+    stats["Achievements total"] = len(df_cheevo_year)
     
     if hardcore_mode_only:
+
+        df_awards_year = df_awards_year[df_awards_year["AwardDataExtra"] == 1]
         
         stats["Softcore Points total"] = 0
-        stats["Hardcore Points total"] = df_year["Points"].sum()
-        stats["RetroPoints total"]     = df_year["TrueRatio"].sum()
+        stats["Hardcore Points total"] = df_cheevo_year["Points"].sum()
+        stats["RetroPoints total"]     = df_cheevo_year["TrueRatio"].sum()
         
     else:
         
-        stats["Softcore Points total"] = df_year[df_year["HardcoreMode"] == False]["Points"].sum()
-        stats["Points total"]          = df_year[df_year["HardcoreMode"] == True ]["Points"].sum()
-        stats["RetroPoints total"]     = df_year[df_year["HardcoreMode"] == True ]["TrueRatio"].sum()
+        stats["Softcore Points total"] = df_cheevo_year[df_cheevo_year["HardcoreMode"] == False]["Points"].sum()
+        stats["Points total"]          = df_cheevo_year[df_cheevo_year["HardcoreMode"] == True ]["Points"].sum()
+        stats["RetroPoints total"]     = df_cheevo_year[df_cheevo_year["HardcoreMode"] == True ]["TrueRatio"].sum()
 
-    ### Get mastery/beaten data
-    
-    mastered_games = []
-    beaten_games   = []
+    ### Get beaten & mastery data
 
-    mastered_dates = [] # Formatted dates
-    beaten_dates   = []
-
-    mastered_dates_raw = [] # Unix dates for easier sorting
-    beaten_dates_raw   = []
-    
-    game_icons = {}
-
-    # Check which games were mastered and/or beaten
-    
-    for game_id in game_ids:
-    
-        df_game_until = df_historic[(df_historic["Year"] <= year) & (df_historic["GameID"] == game_id)]
-        df_game_prev  = df_historic[(df_historic["Year"] <  year) & (df_historic["GameID"] == game_id)]
-    
-        if ((check_mastered(game_id, df_game_until, cheevos_data_dict) and not
-             check_mastered(game_id, df_game_prev,  cheevos_data_dict))):
-            
-            last_entry = df_game_until.iloc[len(df_game_until)-1]
-    
-            mastered_games.append(game_id)
-            mastered_dates.append(get_formatted_date(last_entry['Day'], last_entry['Month']))
-            mastered_dates_raw.append(last_entry['Date'])
-    
-        if ((check_beaten(game_id, df_game_until, cheevos_data_dict) and not
-             check_beaten(game_id, df_game_prev,  cheevos_data_dict))):
-
-            last_entry = df_game_until.iloc[len(df_game_until)-1]
-    
-            beaten_games.append(game_id)
-            beaten_dates.append(get_formatted_date(last_entry['Day'], last_entry['Month']))
-            beaten_dates_raw.append(last_entry['Date'])
-    
-    # Sort by date
-
-    mastered_order = np.argsort(mastered_dates_raw)
-    beaten_order   = np.argsort(beaten_dates_raw)
-
-    mastered_games = [mastered_games[i] for i in mastered_order]
-    mastered_dates = [mastered_dates[i] for i in mastered_order]
-
-    beaten_games = [beaten_games[i] for i in beaten_order]
-    beaten_dates = [beaten_dates[i] for i in beaten_order]
+    beaten_games   = df_awards_year[df_awards_year["AwardType"] == "Game Beaten"].reset_index(drop=True)
+    mastered_games = df_awards_year[df_awards_year["AwardType"] == "Mastery/Completion"].reset_index(drop=True)
 
     # Retrieve game icons for chosen games
 
-    for game_id in np.unique(mastered_games + beaten_games):
-        game_icons[game_id] = get_game_icon_fig(df_historic, game_id)
+    df_game_icons = df_awards_year[["AwardData", "ImageIcon"]].drop_duplicates().reset_index(drop=True)
+
+    game_icons = {}
+
+    for i in range(len(df_game_icons)):
+        url = 'https://media.retroachievements.org' + df_game_icons["ImageIcon"].values[i]
+        game_icons[df_game_icons["AwardData"].values[i]] = retrieve_image_as_fig(url)
 
     # Store relevant data in output dictionary
 
     stats["Mastered games"] = mastered_games
     stats["Beaten games"]   = beaten_games
-    stats["Mastered dates"] = mastered_dates
-    stats["Beaten dates"]   = beaten_dates
     stats["Game icons"]     = game_icons
     
     ### Get hardest achievements
     
-    hardest_achievements = df_year.nlargest(10, "TrueRatio").reset_index(drop=True)
+    hardest_achievements = df_cheevo_year.nlargest(10, "TrueRatio").reset_index(drop=True)
     
     stats["Hardest achievements"] = [hardest_achievements.iloc[i] for i in range(len(hardest_achievements))]
-    
     stats["Hardest achievements badges"] = [get_cheevo_badge_fig(df_historic, stats["Hardest achievements"][i]["AchievementID"]) for i in range(len(hardest_achievements))]
 
     return stats
@@ -1378,22 +1422,27 @@ if __name__ == "__main__":
     
     username = input("Username: ")
     api_key  = input("Your API key: ")
+
+
     year = int(input("Year: "))
     
     df_historic = retrieve_historic_df(username=username,
                                        api_key=api_key,
-                                       hardcore_mode_only=False)
+                                       hardcore_mode_only=False,
+                                       )
+    
+    df_awards = retrieve_awards_df(username=username,
+                                   api_key=api_key,
+                                   )
     
     df_events = get_event_data(df_historic, drop=True)
-    
-    df_games_data, cheevos_data_dict = retrieve_necessary_games_data(df_historic=df_historic,
-                                                                     api_key=api_key)
     
     # Yearly stats
     
     stats = get_yearly_stats(df_historic=df_historic,
+                             df_awards=df_awards,
                              year=year,
-                             cheevos_data_dict=cheevos_data_dict)
+                             )
 
     print(year, "stats")
     print("-----------------------------------------\n")
@@ -1404,13 +1453,19 @@ if __name__ == "__main__":
     print("You got", stats["RetroPoints total"], "RetroPoints.")
         
     print("You beat", len(stats["Beaten games"]), "games:")
-    for game_id, date in zip(stats["Beaten games"], stats["Beaten dates"]):
-        print("\t" + get_game_title(game_id, df_games_data) + ", " + get_game_console(game_id, df_historic) + ", " + date)
+    for i in range(len(stats["Beaten games"])):
+        title = stats["Beaten games"].loc[i,"Title"]
+        console = stats["Beaten games"].loc[i,"ConsoleName"]
+        date = get_formatted_date(stats["Beaten games"].loc[i,"Day"], stats["Beaten games"].loc[i,"Month"])
+        print(f"\t{title}, {console}, {date}")
     print()
     
     print("You mastered", len(stats["Mastered games"]), "games:")
-    for game_id, date in zip(stats["Mastered games"], stats["Mastered dates"]):
-        print("\t" + get_game_title(game_id, df_games_data) + ", " + get_game_console(game_id, df_historic) + ", " + date)
+    for i in range(len(stats["Mastered games"])):
+        title = stats["Mastered games"].loc[i,"Title"]
+        console = stats["Mastered games"].loc[i,"ConsoleName"]
+        date = get_formatted_date(stats["Mastered games"].loc[i,"Day"], stats["Mastered games"].loc[i,"Month"])
+        print(f"\t{title}, {console}, {date}")
         
     # Daily points figure
         
