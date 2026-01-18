@@ -600,7 +600,7 @@ def retrieve_historic_df(
     # if the user decides so.
 
     if hardcore_mode_only:
-        df_historic = df_historic[df_historic["HardcoreMode"]].reset_index(drop=True)
+        df_historic = df_historic[df_historic["HardcoreMode"] == 1].reset_index(drop=True)
     
     # Format the dates in a more manageable way
     
@@ -620,7 +620,6 @@ def retrieve_historic_df(
     if hardcore_mode_only:
         df_historic = df_historic.drop(
             [
-                "HardcoreMode",
                 "GameURL",
             ],
             axis=1)
