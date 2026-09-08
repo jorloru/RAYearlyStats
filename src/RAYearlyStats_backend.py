@@ -32,11 +32,21 @@ import plotly.graph_objects as go
 
 def http_get(
     url:str,
+    max_retries:int=5,
 ) -> requests.Response:
     
-    # TODO Handle some edge cases
+    for attempt in range(max_retries):
+        r = requests.get(url)
+        
+        if r.status_code == 200:
+            return r
+        elif r.status_code == 429:
+            wait = int(r.headers.get("Retry-After", 2 ** attempt))
+            time.sleep(wait)
+        else:
+            r.raise_for_status()
     
-    return requests.get(url)
+    raise RuntimeError("Max retries exceeded")
 
 
 def get_game_ids(
